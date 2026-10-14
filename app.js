@@ -233,9 +233,12 @@ function closeCart(){
   cartDrawer.hidden = true;
   document.body.style.overflow = '';
 }
+function toggleCart(){
+  if (cartDrawer.hidden) openCart(); else closeCart();
+}
 
-cartBtn.addEventListener('click', openCart);
-summaryEl.addEventListener('click', openCart);
+cartBtn.addEventListener('click', toggleCart);
+summaryEl.addEventListener('click', toggleCart);
 cartClose.addEventListener('click', closeCart);
 cartBackdrop.addEventListener('click', closeCart);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !cartDrawer.hidden) closeCart(); });
