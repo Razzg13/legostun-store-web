@@ -218,6 +218,7 @@ const cartBtn = document.getElementById('cartBtn');
 const cartBackdrop = document.getElementById('cartBackdrop');
 const cartDrawer = document.getElementById('cartDrawer');
 const cartClose = document.getElementById('cartClose');
+const cartCloseBtn = document.getElementById('cartCloseBtn');
 const cartItemsEl = document.getElementById('cartItems');
 const cartTotalEl = document.getElementById('cartTotal');
 const cartSendBtn = document.getElementById('cartSendBtn');
@@ -240,6 +241,7 @@ function toggleCart(){
 cartBtn.addEventListener('click', toggleCart);
 summaryEl.addEventListener('click', toggleCart);
 cartClose.addEventListener('click', closeCart);
+cartCloseBtn.addEventListener('click', closeCart);
 cartBackdrop.addEventListener('click', closeCart);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !cartDrawer.hidden) closeCart(); });
 
