@@ -1,13 +1,21 @@
 const fmt = n => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+const slugify = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-');
 
 const state = {}; // name -> qty
 
 const catalogEl = document.getElementById('catalog');
+const navEl = document.getElementById('siteNav');
 const categories = [...new Set(PRODUCTS.map(p => p.category))];
 
 categories.forEach(cat => {
+  const navLink = document.createElement('a');
+  navLink.href = `#cat-${slugify(cat)}`;
+  navLink.textContent = cat;
+  navEl.appendChild(navLink);
+
   const label = document.createElement('div');
   label.className = 'cat-label';
+  label.id = `cat-${slugify(cat)}`;
   label.textContent = cat;
   catalogEl.appendChild(label);
 
@@ -102,5 +110,11 @@ sendBtn.addEventListener('click', () => {
   a.click();
   a.remove();
 });
+
+const genericText = encodeURIComponent(`Hola ${BUSINESS.name}! Quería hacer una consulta.`);
+const genericWaUrl = `https://wa.me/${BUSINESS.whatsapp}?text=${genericText}`;
+document.getElementById('headerWhatsapp').href = genericWaUrl;
+document.getElementById('footerWhatsapp').href = genericWaUrl;
+document.getElementById('year').textContent = new Date().getFullYear();
 
 updateSummary();
