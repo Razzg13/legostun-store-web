@@ -1,0 +1,230 @@
+/*
+  Layout concept: vitrina de productos — grid de tarjetas con una barra
+  de pedido fija abajo que se llena a medida que el cliente elige,
+  y se vuelca hacia WhatsApp con un solo botón.
+*/
+:root{
+  --bg:#f6f7f9;
+  --surface:#ffffff;
+  --ink:#1c2024;
+  --ink-soft:#616a73;
+  --accent:#ff5a1f;
+  --accent-ink:#ffffff;
+  --line:#e3e6ea;
+  --success:#2f8f5b;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171a;
+    --surface:#1f2226;
+    --ink:#eef0f2;
+    --ink-soft:#a3abb3;
+    --accent:#ff7a45;
+    --accent-ink:#15171a;
+    --line:#2d3136;
+    --success:#5fcf8c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171a;
+  --surface:#1f2226;
+  --ink:#eef0f2;
+  --ink-soft:#a3abb3;
+  --accent:#ff7a45;
+  --accent-ink:#15171a;
+  --line:#2d3136;
+  --success:#5fcf8c;
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box;}
+html,body{ margin:0; }
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Source Sans 3', system-ui, -apple-system, sans-serif;
+  padding-inline:20px;
+  padding-block:28px;
+}
+h1,h2,.brand,.price{
+  font-family:'Fraunces', Georgia, serif;
+}
+
+.wrap{
+  max-width:880px;
+  margin:0 auto;
+  padding-bottom:120px;
+}
+
+header{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:6px;
+}
+.brand{
+  font-size:2rem;
+  font-weight:600;
+  letter-spacing:-0.01em;
+}
+.tagline{
+  color:var(--ink-soft);
+  font-size:0.95rem;
+}
+.meta{
+  color:var(--ink-soft);
+  font-size:0.85rem;
+  margin-bottom:28px;
+  border-top:1px solid var(--line);
+  padding-top:10px;
+}
+
+.cat-label{
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  font-size:0.75rem;
+  color:var(--accent);
+  font-weight:700;
+  margin:28px 0 12px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(220px,1fr));
+  gap:16px;
+}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-width:0;
+}
+.card .emoji{
+  font-size:2rem;
+  line-height:1;
+}
+.card h3{
+  margin:0;
+  font-size:1.05rem;
+  font-weight:600;
+}
+.card p{
+  margin:0;
+  font-size:0.88rem;
+  color:var(--ink-soft);
+  flex-grow:1;
+}
+.card .row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.price{
+  font-weight:600;
+  font-size:1.05rem;
+}
+
+.stepper{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.stepper button{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  border:1px solid var(--line);
+  background:var(--bg);
+  color:var(--ink);
+  font-size:1rem;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.stepper button:hover{ border-color:var(--accent); color:var(--accent); }
+.stepper .qty{
+  min-width:1.4em;
+  text-align:center;
+  font-variant-numeric:tabular-nums;
+  font-weight:600;
+}
+
+.orderbar{
+  position:fixed;
+  left:0; right:0; bottom:0;
+  padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));
+  background:var(--surface);
+  border-top:1px solid var(--line);
+  box-shadow:0 -6px 20px rgba(0,0,0,0.08);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.orderbar-inner{
+  width:100%;
+  max-width:880px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.orderbar .summary{
+  flex:1;
+  min-width:0;
+  font-size:0.88rem;
+  color:var(--ink-soft);
+}
+.orderbar .summary strong{
+  color:var(--ink);
+  font-size:1rem;
+}
+.send-btn{
+  background:var(--accent);
+  color:var(--accent-ink);
+  border:none;
+  border-radius:999px;
+  padding:12px 22px;
+  font-size:0.95rem;
+  font-weight:700;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  white-space:nowrap;
+}
+.send-btn:disabled{
+  opacity:0.4;
+  cursor:not-allowed;
+}
+.send-btn svg{ width:18px; height:18px; flex:none; }
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:92px;
+  transform:translateX(-50%);
+  background:var(--ink);
+  color:var(--bg);
+  padding:8px 16px;
+  border-radius:8px;
+  font-size:0.85rem;
+  opacity:0;
+  transition:opacity 0.25s;
+  pointer-events:none;
+}
+.toast.show{ opacity:1; }
+
+@media (prefers-reduced-motion: reduce){
+  .toast{ transition:none; }
+}
