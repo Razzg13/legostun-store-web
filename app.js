@@ -96,7 +96,10 @@ PRODUCTS.forEach(p => {
   card.dataset.category = p.category;
   card.innerHTML = `
     <button type="button" class="fav-btn" aria-label="Agregar a favoritos" aria-pressed="${favorites.has(p.name)}">♥</button>
-    <div class="emoji">${p.emoji}</div>
+    <div class="card-image">
+      <img src="${p.image}" alt="${p.name}" loading="lazy" width="600" height="600">
+      <span class="card-image-badge">${p.emoji}</span>
+    </div>
     <h3>${p.name}</h3>
     <p>${p.desc}</p>
     <div class="row">
@@ -308,7 +311,7 @@ function renderCartItems(){
     const row = document.createElement('div');
     row.className = 'cart-item';
     row.innerHTML = `
-      <div class="cart-item-emoji">${p.emoji}</div>
+      <img class="cart-item-image" src="${p.image}" alt="" loading="lazy" width="40" height="40">
       <div class="cart-item-info">
         <div class="name">${p.name}</div>
         <div class="line-price">${fmt(p.price)} c/u · <strong>${fmt(p.price * q)}</strong></div>
