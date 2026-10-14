@@ -1,87 +1,149 @@
 const fmt = n => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
-const slugify = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-');
+const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-const STORAGE_KEY = 'legostun-cart';
+const CART_KEY = 'legostun-cart';
+const FAVORITES_KEY = 'legostun-favorites';
 
 function loadCart(){
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const saved = JSON.parse(localStorage.getItem(CART_KEY) || '{}');
     const cart = {};
     PRODUCTS.forEach(p => { cart[p.name] = saved[p.name] > 0 ? saved[p.name] : 0; });
     return cart;
   } catch (e) {
-    return {};
+    return Object.fromEntries(PRODUCTS.map(p => [p.name, 0]));
   }
 }
-
 function saveCart(){
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable, cart just won't persist */ }
+  try { localStorage.setItem(CART_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ }
+}
+
+function loadFavorites(){
+  try { return new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')); }
+  catch (e) { return new Set(); }
+}
+function saveFavorites(){
+  try { localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites])); } catch (e) { /* storage unavailable */ }
 }
 
 const state = loadCart(); // name -> qty
+const favorites = loadFavorites(); // Set of product names
 
-// ---- Render catalog ----
-const catalogEl = document.getElementById('catalog');
-const navEl = document.getElementById('siteNav');
+const filters = { query: '', category: 'Todos', favoritesOnly: false, sort: 'relevance' };
 const categories = [...new Set(PRODUCTS.map(p => p.category))];
-const qtyDisplays = {}; // name -> [elements] to keep in sync (card + cart row)
 
-categories.forEach(cat => {
-  const navLink = document.createElement('a');
-  navLink.href = `#cat-${slugify(cat)}`;
-  navLink.textContent = cat;
-  navEl.appendChild(navLink);
-
-  const label = document.createElement('div');
-  label.className = 'cat-label';
-  label.id = `cat-${slugify(cat)}`;
-  label.textContent = cat;
-  catalogEl.appendChild(label);
-
-  const grid = document.createElement('div');
-  grid.className = 'grid';
-
-  PRODUCTS.filter(p => p.category === cat).forEach(p => {
-    qtyDisplays[p.name] = [];
-
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div class="emoji">${p.emoji}</div>
-      <h3>${p.name}</h3>
-      <p>${p.desc}</p>
-      <div class="row">
-        <span class="price">${fmt(p.price)}</span>
-        <div class="stepper" data-name="${p.name}">
-          <button type="button" class="minus" aria-label="Quitar">−</button>
-          <span class="qty">${state[p.name]}</span>
-          <button type="button" class="plus" aria-label="Agregar">+</button>
-        </div>
-      </div>
-    `;
-    grid.appendChild(card);
-
-    const stepper = card.querySelector('.stepper');
-    const qtyEl = stepper.querySelector('.qty');
-    qtyDisplays[p.name].push(qtyEl);
-
-    stepper.querySelector('.plus').addEventListener('click', () => {
-      const wasZero = state[p.name] === 0;
-      setQty(p.name, state[p.name] + 1);
-      showToast(wasZero ? `${p.name} agregado` : `${p.name} actualizado`);
+// ---- Build chips ----
+const chipsEl = document.getElementById('chips');
+function buildChips(){
+  const chipDefs = ['Todos', ...categories];
+  chipDefs.forEach(cat => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.textContent = cat;
+    chip.dataset.category = cat;
+    chip.addEventListener('click', () => {
+      filters.category = cat;
+      filters.favoritesOnly = false;
+      syncChipState();
+      render();
     });
-    stepper.querySelector('.minus').addEventListener('click', () => {
-      if (state[p.name] > 0) setQty(p.name, state[p.name] - 1);
-    });
+    chipsEl.appendChild(chip);
   });
 
-  catalogEl.appendChild(grid);
+  const favChip = document.createElement('button');
+  favChip.type = 'button';
+  favChip.className = 'chip chip-fav';
+  favChip.id = 'favChip';
+  favChip.innerHTML = '♥ Favoritos';
+  favChip.addEventListener('click', () => {
+    filters.favoritesOnly = !filters.favoritesOnly;
+    syncChipState();
+    render();
+  });
+  chipsEl.appendChild(favChip);
+}
+function syncChipState(){
+  chipsEl.querySelectorAll('.chip[data-category]').forEach(c => {
+    c.classList.toggle('active', !filters.favoritesOnly && c.dataset.category === filters.category);
+  });
+  document.getElementById('favChip').classList.toggle('active', filters.favoritesOnly);
+}
+
+// ---- Build product cards (once) ----
+const gridEl = document.getElementById('grid');
+const emptyStateEl = document.getElementById('emptyState');
+const cardsByName = {};
+const qtyDisplays = {}; // name -> card qty span
+
+PRODUCTS.forEach(p => {
+  qtyDisplays[p.name] = null;
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.name = p.name;
+  card.dataset.category = p.category;
+  card.innerHTML = `
+    <button type="button" class="fav-btn" aria-label="Agregar a favoritos" aria-pressed="${favorites.has(p.name)}">♥</button>
+    <div class="emoji">${p.emoji}</div>
+    <h3>${p.name}</h3>
+    <p>${p.desc}</p>
+    <div class="row">
+      <span class="price">${fmt(p.price)}</span>
+      <div class="stepper" data-name="${p.name}">
+        <button type="button" class="minus" aria-label="Quitar">−</button>
+        <span class="qty">${state[p.name]}</span>
+        <button type="button" class="plus" aria-label="Agregar">+</button>
+      </div>
+    </div>
+  `;
+
+  if (favorites.has(p.name)) card.querySelector('.fav-btn').classList.add('active');
+
+  qtyDisplays[p.name] = card.querySelector('.qty');
+  card.querySelector('.plus').addEventListener('click', () => {
+    const wasZero = state[p.name] === 0;
+    setQty(p.name, state[p.name] + 1);
+    showToast(wasZero ? `${p.name} agregado` : `${p.name} actualizado`);
+  });
+  card.querySelector('.minus').addEventListener('click', () => {
+    if (state[p.name] > 0) setQty(p.name, state[p.name] - 1);
+  });
+  card.querySelector('.fav-btn').addEventListener('click', () => {
+    if (favorites.has(p.name)) favorites.delete(p.name); else favorites.add(p.name);
+    saveFavorites();
+    card.querySelector('.fav-btn').classList.toggle('active');
+    card.querySelector('.fav-btn').setAttribute('aria-pressed', favorites.has(p.name));
+    if (filters.favoritesOnly) render();
+  });
+
+  cardsByName[p.name] = card;
+  gridEl.appendChild(card);
 });
+
+// ---- Filtering, sorting, rendering ----
+function render(){
+  let visible = PRODUCTS.filter(p => {
+    if (filters.favoritesOnly && !favorites.has(p.name)) return false;
+    if (!filters.favoritesOnly && filters.category !== 'Todos' && p.category !== filters.category) return false;
+    if (filters.query && !norm(p.name).includes(norm(filters.query)) && !norm(p.desc).includes(norm(filters.query))) return false;
+    return true;
+  });
+
+  if (filters.sort === 'price-asc') visible = visible.slice().sort((a, b) => a.price - b.price);
+  if (filters.sort === 'price-desc') visible = visible.slice().sort((a, b) => b.price - a.price);
+
+  const visibleNames = new Set(visible.map(p => p.name));
+  PRODUCTS.forEach(p => { cardsByName[p.name].hidden = !visibleNames.has(p.name); });
+  visible.forEach(p => gridEl.appendChild(cardsByName[p.name])); // reorder to match sort
+
+  emptyStateEl.hidden = visible.length > 0;
+}
 
 // ---- Shared qty update ----
 function setQty(name, qty){
   state[name] = Math.max(0, qty);
-  qtyDisplays[name].forEach(el => { el.textContent = state[name]; });
+  if (qtyDisplays[name]) qtyDisplays[name].textContent = state[name];
   saveCart();
   updateSummary();
   renderCartItems();
@@ -218,6 +280,16 @@ function renderCartItems(){
   });
 }
 
+// ---- Toolbar: search + sort ----
+document.getElementById('searchInput').addEventListener('input', e => {
+  filters.query = e.target.value;
+  render();
+});
+document.getElementById('sortSelect').addEventListener('change', e => {
+  filters.sort = e.target.value;
+  render();
+});
+
 // ---- Header contact links ----
 const genericText = encodeURIComponent(`Hola ${BUSINESS.name}! Quería hacer una consulta.`);
 const genericWaUrl = `https://wa.me/${BUSINESS.whatsapp}?text=${genericText}`;
@@ -225,5 +297,8 @@ document.getElementById('headerWhatsapp').href = genericWaUrl;
 document.getElementById('footerWhatsapp').href = genericWaUrl;
 document.getElementById('year').textContent = new Date().getFullYear();
 
+buildChips();
+syncChipState();
+render();
 renderCartItems();
 updateSummary();
