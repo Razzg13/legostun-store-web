@@ -1,22 +1,12 @@
 // Delegated close handler, attached first and independent of everything below:
 // closing the cart must work even if something else on the page fails to load.
+// closeCart() is a hoisted function declaration (defined further down), so it's
+// safe to reference here even though this listener is attached before that point.
 document.addEventListener('click', e => {
-  if (e.target.closest('#cartClose, #cartCloseBtn, #cartBackdrop')) {
-    const backdrop = document.getElementById('cartBackdrop');
-    const drawer = document.getElementById('cartDrawer');
-    if (backdrop) backdrop.hidden = true;
-    if (drawer) drawer.hidden = true;
-    document.body.style.overflow = '';
-  }
+  if (e.target.closest('#cartClose, #cartCloseBtn, #cartBackdrop')) closeCart();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    const backdrop = document.getElementById('cartBackdrop');
-    const drawer = document.getElementById('cartDrawer');
-    if (backdrop) backdrop.hidden = true;
-    if (drawer) drawer.hidden = true;
-    document.body.style.overflow = '';
-  }
+  if (e.key === 'Escape') closeCart();
 });
 
 const fmt = n => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -131,10 +121,17 @@ PRODUCTS.forEach(p => {
     if (state[p.name] > 0) setQty(p.name, state[p.name] - 1);
   });
   card.querySelector('.fav-btn').addEventListener('click', () => {
-    if (favorites.has(p.name)) favorites.delete(p.name); else favorites.add(p.name);
+    const btn = card.querySelector('.fav-btn');
+    const nowFavorite = !favorites.has(p.name);
+    if (nowFavorite) favorites.add(p.name); else favorites.delete(p.name);
     saveFavorites();
-    card.querySelector('.fav-btn').classList.toggle('active');
-    card.querySelector('.fav-btn').setAttribute('aria-pressed', favorites.has(p.name));
+    btn.classList.toggle('active', nowFavorite);
+    btn.setAttribute('aria-pressed', nowFavorite);
+    if (nowFavorite) {
+      btn.classList.remove('pop');
+      btn.getBoundingClientRect(); // restart the animation if clicked again quickly
+      btn.classList.add('pop');
+    }
     if (filters.favoritesOnly) render();
   });
 
@@ -245,18 +242,43 @@ const cartTotalEl = document.getElementById('cartTotal');
 const cartSendBtn = document.getElementById('cartSendBtn');
 const cartClear = document.getElementById('cartClear');
 
+// cartOpen is the single source of truth for open/closed state, checked and
+// set synchronously. Relying on cartDrawer.hidden instead would race with the
+// deferred rAF (open) and setTimeout (close) calls below when toggled rapidly.
+let cartOpen = false;
+let closeTimer;
 function openCart(){
+  if (!cartDrawer || !cartBackdrop) return;
+  cartOpen = true;
+  clearTimeout(closeTimer);
   cartBackdrop.hidden = false;
   cartDrawer.hidden = false;
+  // Force layout so the browser registers the pre-animation state before
+  // adding .open on the next frame — otherwise it jumps straight to open.
+  cartDrawer.getBoundingClientRect();
+  requestAnimationFrame(() => {
+    if (!cartOpen) return; // closed again before this frame ran
+    cartBackdrop.classList.add('open');
+    cartDrawer.classList.add('open');
+  });
   document.body.style.overflow = 'hidden';
 }
 function closeCart(){
-  cartBackdrop.hidden = true;
-  cartDrawer.hidden = true;
+  if (!cartDrawer || !cartBackdrop) return;
+  if (!cartOpen) return;
+  cartOpen = false;
+  cartBackdrop.classList.remove('open');
+  cartDrawer.classList.remove('open');
   document.body.style.overflow = '';
+  clearTimeout(closeTimer);
+  closeTimer = setTimeout(() => {
+    if (cartOpen) return; // reopened before this timeout ran
+    cartBackdrop.hidden = true;
+    cartDrawer.hidden = true;
+  }, 300); // matches the drawer's transition duration; a safety net in case transitionend doesn't fire
 }
 function toggleCart(){
-  if (cartDrawer.hidden) openCart(); else closeCart();
+  if (cartOpen) closeCart(); else openCart();
 }
 
 cartBtn.addEventListener('click', toggleCart);
