@@ -1,3 +1,24 @@
+// Delegated close handler, attached first and independent of everything below:
+// closing the cart must work even if something else on the page fails to load.
+document.addEventListener('click', e => {
+  if (e.target.closest('#cartClose, #cartCloseBtn, #cartBackdrop')) {
+    const backdrop = document.getElementById('cartBackdrop');
+    const drawer = document.getElementById('cartDrawer');
+    if (backdrop) backdrop.hidden = true;
+    if (drawer) drawer.hidden = true;
+    document.body.style.overflow = '';
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const backdrop = document.getElementById('cartBackdrop');
+    const drawer = document.getElementById('cartDrawer');
+    if (backdrop) backdrop.hidden = true;
+    if (drawer) drawer.hidden = true;
+    document.body.style.overflow = '';
+  }
+});
+
 const fmt = n => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
