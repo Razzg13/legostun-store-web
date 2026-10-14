@@ -142,6 +142,29 @@ button:active:not(:disabled), .hero-cta:active, .header-cta:active{
 }
 .header-cta svg{ width:16px; height:16px; }
 
+.theme-btn{
+  flex:none;
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  border:1px solid var(--line);
+  background:var(--surface);
+  color:var(--ink);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.theme-btn:hover{ border-color:var(--accent); color:var(--accent); }
+.theme-btn svg{ width:19px; height:19px; }
+.theme-btn .icon-moon{ display:none; }
+:root[data-theme="dark"] .theme-btn .icon-sun{ display:none; }
+:root[data-theme="dark"] .theme-btn .icon-moon{ display:block; }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .theme-btn .icon-sun{ display:none; }
+  :root:not([data-theme="light"]) .theme-btn .icon-moon{ display:block; }
+}
+
 .cart-btn{
   position:relative;
   flex:none;

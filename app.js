@@ -341,6 +341,25 @@ document.getElementById('sortSelect').addEventListener('change', e => {
   render();
 });
 
+// ---- Theme toggle ----
+const THEME_KEY = 'legostun-theme';
+const themeBtn = document.getElementById('themeBtn');
+function currentTheme(){
+  return document.documentElement.dataset.theme
+    || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+function updateThemeLabel(){
+  const isDark = currentTheme() === 'dark';
+  themeBtn.setAttribute('aria-label', isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+}
+themeBtn.addEventListener('click', () => {
+  const next = currentTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* storage unavailable */ }
+  updateThemeLabel();
+});
+updateThemeLabel();
+
 // ---- Header contact links ----
 const genericText = encodeURIComponent(`Hola ${BUSINESS.name}! Quería hacer una consulta.`);
 const genericWaUrl = `https://wa.me/${BUSINESS.whatsapp}?text=${genericText}`;
