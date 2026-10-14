@@ -178,6 +178,9 @@ a{ color:inherit; }
   flex-direction:column;
   box-shadow:-12px 0 32px rgba(0,0,0,0.18);
 }
+.cart-drawer[hidden], .cart-backdrop[hidden]{
+  display:none;
+}
 .cart-drawer-header{
   display:flex;
   align-items:center;
